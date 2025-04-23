@@ -104,7 +104,6 @@
 
   <div id="buttons"></div>
 
-  <!-- Formulaire Arrivée -->
   <div id="arrivee-container" class="input-container" style="display: none;">
     <select id="lieu">
       <option value="Bureau">Bureau</option>
@@ -117,13 +116,11 @@
     <button id="envoyer-arrivee">Envoyer</button>
   </div>
 
-  <!-- Formulaire Urgence -->
   <div id="urgence-container" class="input-container" style="display: none;">
     <input id="raison" type="text" placeholder="Raison d'urgence">
     <button id="envoyer-urgence">Envoyer</button>
   </div>
 
-  <!-- Réseaux sociaux -->
   <div class="social-footer">
     <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/25/25231.png" alt="GitHub"></a>
     <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WhatsApp"></a>
@@ -131,143 +128,98 @@
     <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/841/841364.png" alt="Site Web"></a>
     <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" alt="Instagram"></a>
   </div>
-  <!-- À placer à la fin de ton <script> existant, juste avant </script> -->
+
   <script>
-    // Fonction de localisation automatique
+    const email = new URLSearchParams(window.location.search).get("email");
+    const scriptBase = "https://script.google.com/macros/s/AKfycbzAcKQzRjm_hHt1ta_XMvN-0DHsa61ve78IiwX0maoDOM7T2clgRV-vZAsMNDcU7Jounw/exec";
+
     function obtenirLocalisation(callback) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          position => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            callback(lat, lng);
-          },
-          error => {
-            alert("Impossible de récupérer la localisation !");
-            callback(null, null);
-          }
+          position => callback(position.coords.latitude, position.coords.longitude),
+          () => callback(null, null)
         );
       } else {
-        alert("La géolocalisation n'est pas supportée par ce navigateur.");
         callback(null, null);
       }
     }
-  
-    document.getElementById('envoyer-arrivee').addEventListener('click', () => {
-      const lieu = document.getElementById('lieu').value;
-      let finalLieu = "";
-  
-      if (lieu === 'Zone Sacré Coeur' || lieu === 'Zone SICAP') {
-        finalLieu = document.getElementById('secteur-container').value;
-      } else if (lieu === 'Autre') {
-        finalLieu = document.getElementById('autre-lieu').value;
-      } else {
-        finalLieu = lieu;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!email) {
+        document.getElementById("titre").innerText = "Email manquant ❌";
+        return;
       }
-  
-      obtenirLocalisation((lat, lng) => {
-        let url = `${scriptBase}?email=${encodeURIComponent(email)}&action=arrivee&lieu=${encodeURIComponent(finalLieu)}`;
-        if (lat && lng) {
-          url += `&latitude=${lat}&longitude=${lng}`;
-        }
-  
-        fetch(url)
-          .then(res => res.text())
-          .then(msg => {
-            document.getElementById("titre").innerText = msg;
-            document.getElementById('arrivee-container').style.display = 'none';
-          });
-      });
+
+      fetch(`${scriptBase}?email=${encodeURIComponent(email)}`)
+        .then(res => res.text())
+        .then(response => {
+          if (response.startsWith("Bonjour") || response.startsWith("Bonsoir")) {
+            document.getElementById("titre").innerText = response;
+            document.getElementById("buttons").innerHTML = `
+              <button id="btn-arrivee">Pointer Arrivée</button>
+              <button id="btn-urgence">Pointer Urgence</button>
+              <button onclick="window.open('${scriptBase}?email=${email}&action=retour')">Fin d'Urgence</button>
+              <button onclick="window.open('${scriptBase}?email=${email}&action=descente')">Pointer Descente</button>
+            `;
+
+            document.getElementById("btn-arrivee").onclick = () => {
+              document.getElementById("arrivee-container").style.display = "flex";
+              document.getElementById("urgence-container").style.display = "none";
+            };
+
+            document.getElementById("btn-urgence").onclick = () => {
+              document.getElementById("urgence-container").style.display = "flex";
+              document.getElementById("arrivee-container").style.display = "none";
+            };
+
+            document.getElementById("lieu").addEventListener("change", e => {
+              const val = e.target.value;
+              const secteur = document.getElementById("secteur-container");
+              const autre = document.getElementById("autre-lieu");
+              secteur.innerHTML = "";
+              secteur.style.display = "none";
+              autre.style.display = "none";
+              if (val === "Zone Sacré Coeur") {
+                secteur.style.display = "block";
+                for (let i = 1; i <= 11; i++) secteur.innerHTML += `<option value="1S${i}">1S${i}</option>`;
+              } else if (val === "Zone SICAP") {
+                secteur.style.display = "block";
+                for (let i = 1; i <= 3; i++) secteur.innerHTML += `<option value="2S${i}">2S${i}</option>`;
+              } else if (val === "Autre") autre.style.display = "block";
+            });
+
+            document.getElementById("envoyer-arrivee").onclick = () => {
+              const lieu = document.getElementById("lieu").value;
+              let finalLieu = lieu;
+              if (lieu === "Zone Sacré Coeur" || lieu === "Zone SICAP")
+                finalLieu = document.getElementById("secteur-container").value;
+              else if (lieu === "Autre")
+                finalLieu = document.getElementById("autre-lieu").value;
+
+              obtenirLocalisation((lat, lng) => {
+                let url = `${scriptBase}?email=${encodeURIComponent(email)}&action=arrivee&lieu=${encodeURIComponent(finalLieu)}`;
+                if (lat && lng) url += `&latitude=${lat}&longitude=${lng}`;
+                fetch(url).then(r => r.text()).then(msg => {
+                  document.getElementById("titre").innerText = msg;
+                  document.getElementById("arrivee-container").style.display = "none";
+                });
+              });
+            };
+
+            document.getElementById("envoyer-urgence").onclick = () => {
+              const raison = document.getElementById("raison").value;
+              fetch(`${scriptBase}?email=${encodeURIComponent(email)}&action=urgence&raison=${encodeURIComponent(raison)}`)
+                .then(r => r.text())
+                .then(msg => {
+                  document.getElementById("titre").innerText = msg;
+                  document.getElementById("urgence-container").style.display = "none";
+                });
+            };
+          } else {
+            document.getElementById("titre").innerText = response;
+          }
+        });
     });
-  </script>
-
-  <script>
-      const email = new URLSearchParams(window.location.search).get("email");
-      document.getElementById('choix-arrivee').addEventListener('click', () => {
-      document.getElementById('arrivee-container').style.display = 'block';
-      document.getElementById('urgence-container').style.display = 'none';
-      });
-      
-      document.getElementById('choix-urgence').addEventListener('click', () => {
-      document.getElementById('urgence-container').style.display = 'block';
-      document.getElementById('arrivee-container').style.display = 'none';
-      });
-      
-      document.getElementById('lieu').addEventListener('change', function () {
-      const secteurContainer = document.getElementById('secteur-container');
-      const autreLieuContainer = document.getElementById('autre-lieu-container');
-      
-      secteurContainer.style.display = this.value === 'Zone Sacré Coeur' || this.value === 'Zone SICAP' ? 'block' : 'none';
-      autreLieuContainer.style.display = this.value === 'Autre' ? 'block' : 'none';
-      });
-      
-      document.getElementById('envoyer-arrivee').addEventListener('click', () => {
-      const btn = document.getElementById('envoyer-arrivee');
-      btn.disabled = true;
-      
-      const lieu = document.getElementById('lieu').value;
-      const secteur = document.getElementById('secteur-container').value;
-      const autre = document.getElementById('autre-lieu').value;
-      let finalLieu = "";
-      
-      if (lieu === 'Zone Sacré Coeur' || lieu === 'Zone SICAP') {
-        finalLieu = secteur;
-      } else if (lieu === 'Autre') {
-        finalLieu = autre;
-      } else {
-        finalLieu = lieu;
-      }
-      
-      if (!finalLieu || finalLieu.trim() === "") {
-        alert("Veuillez remplir correctement le lieu.");
-        btn.disabled = false;
-        return;
-      }
-      
-      fetch(`${scriptBase}?email=${encodeURIComponent(email)}&action=arrivee&lieu=${encodeURIComponent(finalLieu)}`)
-        .then(res => res.text())
-        .then(msg => {
-          document.getElementById("titre").innerText = msg;
-          document.getElementById('arrivee-container').style.display = 'none';
-          document.getElementById('lieu').value = '';
-          document.getElementById('secteur-container').value = '';
-          document.getElementById('autre-lieu').value = '';
-        })
-        .catch(err => {
-          alert("Erreur lors de l'envoi : " + err.message);
-        })
-        .finally(() => {
-          btn.disabled = false;
-        });
-      });
-      
-      document.getElementById('envoyer-urgence').addEventListener('click', () => {
-      const btn = document.getElementById('envoyer-urgence');
-      btn.disabled = true;
-      
-      const raison = document.getElementById('raison').value;
-      
-      if (!raison || raison.trim() === "") {
-        alert("Veuillez indiquer la raison de l'urgence.");
-        btn.disabled = false;
-        return;
-      }
-      
-      fetch(`${scriptBase}?email=${encodeURIComponent(email)}&action=urgence&raison=${encodeURIComponent(raison)}`)
-        .then(res => res.text())
-        .then(msg => {
-          document.getElementById("titre").innerText = msg;
-          document.getElementById('urgence-container').style.display = 'none';
-          document.getElementById('raison').value = '';
-        })
-        .catch(err => {
-          alert("Erreur lors de l'envoi : " + err.message);
-        })
-        .finally(() => {
-          btn.disabled = false;
-        });
-      });
-
   </script>
 </body>
 </html>
