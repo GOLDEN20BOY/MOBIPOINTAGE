@@ -12,19 +12,16 @@
       padding: 2em;
       text-align: center;
     }
-
     h1 {
       font-size: 2.5em;
       color: #0077cc;
       margin-bottom: 0.5em;
     }
-
     h2 {
       font-size: 1.3em;
       margin-bottom: 1.5em;
       color: #333;
     }
-
     #buttons {
       display: flex;
       flex-direction: column;
@@ -32,7 +29,6 @@
       gap: 1em;
       margin-bottom: 2em;
     }
-
     button {
       width: 80%;
       max-width: 300px;
@@ -44,24 +40,18 @@
       color: white;
       transition: background 0.3s ease;
     }
-
     button:nth-child(1) { background: #28a745; }
     button:nth-child(1):hover { background: #218838; }
-
     button:nth-child(2) { background: #dc3545; }
     button:nth-child(2):hover { background: #c82333; }
-
     button:nth-child(3) { background: #ffc107; color: black; }
     button:nth-child(3):hover { background: #e0a800; }
-
     button:nth-child(4) { background: #007bff; }
     button:nth-child(4):hover { background: #0056b3; }
-
     .input-container {
       display: none;
       margin-top: 1em;
     }
-
     .input-container select,
     .input-container input,
     .input-container textarea {
@@ -73,18 +63,15 @@
       border-radius: 5px;
       font-size: 1em;
     }
-
     .input-container button {
       margin-top: 1em;
       background-color: #007bff;
       color: white;
     }
-
-    #autre-lieu {
+    #secteur-container {
       display: none;
+      margin-top: 1em;
     }
-
-    /* Formulaire RH */
     .contact-rh {
       background: white;
       padding: 2em;
@@ -95,39 +82,6 @@
       margin-right: auto;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-
-    .contact-rh h3 {
-      margin-bottom: 1em;
-      color: #0077cc;
-    }
-
-    .contact-rh input,
-    .contact-rh textarea {
-      width: 100%;
-      padding: 0.8em;
-      margin-bottom: 1em;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
-    }
-
-    .contact-rh button {
-      width: 100%;
-      background: #007bff;
-      border: none;
-      padding: 1em;
-      font-size: 1em;
-      border-radius: 5px;
-      color: white;
-      cursor: pointer;
-    }
-
-    .contact-rh button:hover {
-      background: #0056b3;
-    }
-
-    /* Pied de page social */
     .social-footer {
       display: flex;
       justify-content: center;
@@ -135,22 +89,18 @@
       flex-wrap: wrap;
       margin-top: 3em;
     }
-
     .social-footer a img {
       width: 35px;
       height: 35px;
       transition: transform 0.3s ease;
     }
-
     .social-footer a:hover img {
       transform: scale(1.2);
     }
-
     @media (max-width: 600px) {
       button {
         width: 90%;
       }
-
       .input-container input,
       .input-container select,
       .input-container textarea {
@@ -169,8 +119,15 @@
   <div id="arrivee-container" class="input-container">
     <select id="lieu">
       <option value="Bureau">Bureau</option>
+      <option value="Zone Sacré Coeur">Zone Sacré Coeur</option>
+      <option value="Zone SICAP">Zone SICAP</option>
       <option value="Autre">Autre</option>
     </select>
+
+    <select id="secteur-container">
+      <!-- Options dynamiques -->
+    </select>
+
     <input id="autre-lieu" type="text" placeholder="Si autre, précisez...">
     <button id="envoyer-arrivee">Envoyer</button>
   </div>
@@ -226,20 +183,46 @@
               document.getElementById('urgence-container').style.display = 'none';
             });
 
-            document.getElementById('btn-urgence').addEventListener('click', () => {
-              document.getElementById('urgence-container').style.display = 'block';
-              document.getElementById('arrivee-container').style.display = 'none';
-            });
-
             document.getElementById('lieu').addEventListener('change', function () {
-              const autre = document.getElementById('autre-lieu');
-              autre.style.display = this.value === 'Autre' ? 'block' : 'none';
-            });
+        const secteur = document.getElementById('secteur-container');
+        const autre = document.getElementById('autre-lieu');
+        secteur.innerHTML = ""; // Réinitialise les options
+        secteur.style.display = 'none';
+        autre.style.display = 'none';
+
+        // Si le lieu sélectionné est "Zone Sacré Coeur"
+        if (this.value === 'Zone Sacré Coeur') {
+            secteur.style.display = 'block';
+            // Ajoute dynamiquement les options de secteur
+            for (let i = 1; i <= 11; i++) {
+            secteur.innerHTML += `<option value="1S${i}">1S${i}</option>`;
+            }
+            // Assurez-vous que le secteur soit centré
+            secteur.style.display = 'flex'; // Flexbox pour centrer les options
+            secteur.style.justifyContent = 'center'; // Centre les éléments
+            secteur.style.alignItems = 'center'; // Centre les éléments
+        } else if (this.value === 'Zone SICAP') {
+            secteur.style.display = 'block';
+            for (let i = 1; i <= 3; i++) {
+            secteur.innerHTML += `<option value="2S${i}">2S${i}</option>`;
+            }
+        } else if (this.value === 'Autre') {
+            autre.style.display = 'block';
+        }
+        });
+
 
             document.getElementById('envoyer-arrivee').addEventListener('click', () => {
               const lieu = document.getElementById('lieu').value;
-              const autre = document.getElementById('autre-lieu').value;
-              const finalLieu = lieu === 'Autre' ? autre : lieu;
+              let finalLieu = "";
+
+              if (lieu === 'Zone Sacré Coeur' || lieu === 'Zone SICAP') {
+                finalLieu = document.getElementById('secteur-container').value;
+              } else if (lieu === 'Autre') {
+                finalLieu = document.getElementById('autre-lieu').value;
+              } else {
+                finalLieu = lieu;
+              }
 
               fetch(`${scriptBase}?email=${encodeURIComponent(email)}&action=arrivee&lieu=${encodeURIComponent(finalLieu)}`)
                 .then(res => res.text())
