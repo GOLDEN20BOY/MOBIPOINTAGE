@@ -131,7 +131,7 @@
 
   <script>
     const email = new URLSearchParams(window.location.search).get("email");
-    const scriptBase = "https://script.google.com/macros/s/AKfycbzAcKQzRjm_hHt1ta_XMvN-0DHsa61ve78IiwX0maoDOM7T2clgRV-vZAsMNDcU7Jounw/exec";
+    const scriptBase = "https://script.google.com/macros/s/AKfycbw_jLdW87PBW6tPS3v_gdx1xvYgENY7kaa5Ekhpb7PWkfgodYMbBpPg-_nu_AHJgWYgyQ/exec";
 
     function obtenirLocalisation(callback) {
       if (navigator.geolocation) {
@@ -190,11 +190,18 @@
 
             document.getElementById("envoyer-arrivee").onclick = () => {
               const lieu = document.getElementById("lieu").value;
+              const autreLieu = document.getElementById("autre-lieu").value.trim();
+
+              if (lieu === "Autre" && autreLieu === "") {
+                alert("Veuillez renseigner le lieu d’arrivée.");
+                return;
+              }
+
               let finalLieu = lieu;
               if (lieu === "Zone Sacré Coeur" || lieu === "Zone SICAP")
                 finalLieu = document.getElementById("secteur-container").value;
               else if (lieu === "Autre")
-                finalLieu = document.getElementById("autre-lieu").value;
+                finalLieu = autreLieu;
 
               obtenirLocalisation((lat, lng) => {
                 let url = `${scriptBase}?email=${encodeURIComponent(email)}&action=arrivee&lieu=${encodeURIComponent(finalLieu)}`;
@@ -207,7 +214,12 @@
             };
 
             document.getElementById("envoyer-urgence").onclick = () => {
-              const raison = document.getElementById("raison").value;
+              const raison = document.getElementById("raison").value.trim();
+              if (raison === "") {
+                alert("Veuillez renseigner la raison de l’urgence.");
+                return;
+              }
+
               fetch(`${scriptBase}?email=${encodeURIComponent(email)}&action=urgence&raison=${encodeURIComponent(raison)}`)
                 .then(r => r.text())
                 .then(msg => {
